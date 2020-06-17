@@ -1,21 +1,42 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, Button, StatusBar, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, Button, StatusBar, TextInput, BackHandler, Alert } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../store/Actions/userAction';
 
 export default ({ navigation: { navigate } }) => {
 
+    useEffect(() => {
+        const backAction = () => {
+            Alert.alert("Hold on!", "Are you sure you want to exit?", [
+                {
+                    text: "Cancel",
+                    onPress: () => null,
+                    style: "cancel"
+                },
+                { text: "YES", onPress: () => BackHandler.exitApp() }
+            ]);
+            return true;
+        };
+
+        const backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            backAction
+        );
+
+        return () => backHandler.remove();
+    }, []);
+
     const [inputText, setInputText] = useState('');
     const dispatch = useDispatch();
 
     const toGame = (difficult) => {
-        if(inputText === '') alert('Input Your Name');
+        if (inputText === '') alert('Input Your Name');
         else {
             dispatch(setUser(inputText));
             navigate('Game', { difficult });
         }
     }
-    
+
     return (
         <>
             <StatusBar hidden={true} />
@@ -31,9 +52,9 @@ export default ({ navigation: { navigate } }) => {
             </View>
             <View style={styles.button}>
                 <Button onPress={() => toGame('easy')} title="EASY"></Button>
-                <Button onPress={() => toGame('medium')}title="MEDIUM" color="orange"></Button>
-                <Button onPress={() => toGame('hard')}title="HARD" color="red"></Button>
-                <Button onPress={() => toGame('random')}title="RANDOM" color="brown"></Button>
+                <Button onPress={() => toGame('medium')} title="MEDIUM" color="orange"></Button>
+                <Button onPress={() => toGame('hard')} title="HARD" color="red"></Button>
+                <Button onPress={() => toGame('random')} title="RANDOM" color="brown"></Button>
             </View>
         </>
     );

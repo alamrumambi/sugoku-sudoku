@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Button, TouchableOpacity, Modal, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, Button, TouchableOpacity, Modal, StatusBar, BackHandler, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchData, setLoading } from '../store/Actions/boardAction';
 
@@ -13,11 +13,8 @@ export default ({ navigation: { navigate }, route }) => {
     const dispatch = useDispatch();
 
     const board = useSelector(state => state.boardReducer.board);
-    // console.log(board);
-    // const [board, setBoard] = useState([]);
     const [solveBoard, setSolveBoard] = useState([]);
     const modalVisible = useSelector(state => state.boardReducer.loadingStatus);
-    // const [modalVisible, setModalVisible] = useState(false);
     const [selectedValue, setSelectedValue] = useState(-1);
 
     useEffect(() => {
@@ -25,16 +22,27 @@ export default ({ navigation: { navigate }, route }) => {
     }, [])
 
     useEffect(() => {
-        let temp = [];
-        for (let i in board) {
-            let temp2 = [];
-            for (let j in board[i]) {
-                temp2.push(board[i][j]);
-            }
-            temp.push(temp2);
-        }
-        setSolveBoard(temp);
+        resetBoard();
     }, [board])
+
+    useEffect(() => {
+        const backAction = () => {
+            Alert.alert("Hold on!", "Are you sure you want to leave game?", [
+                {
+                    text: "Cancel",
+                    onPress: () => null,
+                    style: "cancel"
+                },
+                { text: "YES", onPress: () => navigate('Home') }
+            ]);
+            return true;
+        };
+        const backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            backAction
+        );
+        return () => backHandler.remove();
+    }, []);
 
     const solving = () => {
         dispatch(setLoading(true));
@@ -74,9 +82,8 @@ export default ({ navigation: { navigate }, route }) => {
         })
             .then(response => response.json())
             .then(response => {
-                // alert(response.status === 'solve');
-                if(response.status === 'solve') navigate('Finish')
-                // else alert(response.status);
+                if (response.status === 'solved') navigate('Finish')
+                else alert(response.status);
                 dispatch(setLoading(false));
             })
             .catch(console.log)
@@ -98,7 +105,6 @@ export default ({ navigation: { navigate }, route }) => {
             solveBoard[selectedValue[0]][selectedValue[1]] = Number(num);
             setSelectedValue(-1);
             setSolveBoard(solveBoard);
-            // alert(JSON.stringify(board));
         }
     }
 
@@ -110,13 +116,25 @@ export default ({ navigation: { navigate }, route }) => {
         }
     }
 
+    const resetBoard = () => {
+        let temp = [];
+        for (let i in board) {
+            let temp2 = [];
+            for (let j in board[i]) {
+                temp2.push(board[i][j]);
+            }
+            temp.push(temp2);
+        }
+        setSolveBoard(temp);
+    }
+
     return (
         <>
             <StatusBar hidden={true} />
             <View style={styles.header}>
                 <Text style={styles.headerText}>SUGOKU</Text>
             </View>
-            <Text>Difficult { route.params.difficult }</Text>
+            <Text>Difficult {route.params.difficult}</Text>
             <View style={styles.body}>
                 <Modal
                     animationType="fade"
@@ -129,11 +147,19 @@ export default ({ navigation: { navigate }, route }) => {
                         </View>
                     </View>
                 </Modal>
-                {solveBoard.map((big, x) => {
+                {solveBoard.map((row, x) => {
                     return (<View style={styles.sudokuBigBox} key={x}>
-                        {big.map((small, y) => {
-                            return (<TouchableOpacity onPress={() => setSelected(x, y)} style={[styles.sudokuSmallBox, { backgroundColor: (selectedValue[0] === x && selectedValue[1] === y) ? '#a3f57a' : 'white' }]} key={y}>
-                                <Text style={[styles.keyText, { color: board[x][y] !== 0 ? 'red' : 'black' }]}>{small !== 0 && small}</Text>
+                        {row.map((col, y) => {
+                            return (<TouchableOpacity onPress={() => setSelected(x, y)} style={[styles.sudokuSmallBox,
+                            {
+                                backgroundColor: (selectedValue[0] === x && selectedValue[1] === y) ? '#a3f57a': 'white',
+                                borderTopWidth: (Number(x) % 3 === 0) ? 4 : 1,
+                                borderLeftWidth: (Number(y) % 3 === 0) ? 4 : 1,
+                                borderBottomWidth: (x === 8) ? 4 : 1,
+                                borderRightWidth: (y === 8) ? 4 : 1,
+                            }]}
+                                key={y}>
+                                <Text style={[styles.keyText, {color: board[x][y] !== 0 ? 'red' : 'black',}]}>{col !== 0 && col}</Text>
                             </TouchableOpacity>)
                         })}
                     </View>)
@@ -147,6 +173,9 @@ export default ({ navigation: { navigate }, route }) => {
                 })}
                 <TouchableOpacity onPress={deleteField} style={styles.delButton}>
                     <Text style={styles.keyText}>Delete</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={resetBoard} style={styles.resetButton}>
+                    <Text style={styles.keyText}>Reset Board</Text>
                 </TouchableOpacity>
             </View>
             <View style={styles.submit}>
@@ -201,26 +230,18 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center',
-        flexWrap: 'wrap',
-        flexDirection: 'row',
+        alignContent: 'flex-start',
+        // flexWrap: 'wrap',
+        // flexDirection: 'row',
     },
     sudokuBigBox: {
-        borderWidth: 3,
-        width: 120,
-        height: 120,
-        flexWrap: 'wrap',
+        height: 38,
         flexDirection: 'row',
     },
     sudokuSmallBox: {
         borderWidth: 1,
         width: 38,
         height: 38,
-    },
-    sudokuSmallBox2: {
-        borderWidth: 1,
-        width: 38,
-        height: 38,
-        backgroundColor: 'red',
     },
     keyboard: {
         paddingTop: 10,
@@ -234,7 +255,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#dedede',
         alignItems: 'center',
         alignContent: 'space-around',
-        // justifyContent: 'space-evenly',
+        justifyContent: 'space-evenly',
     },
     keyButton: {
         width: 50,
@@ -243,21 +264,28 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: 'green',
         backgroundColor: 'white',
-        marginRight: 6,
     },
     delButton: {
-        width: 100,
+        width: 77,
         height: 50,
         borderRadius: 4,
         borderWidth: 2,
         borderColor: 'green',
         backgroundColor: 'red',
-        marginRight: 6,
+    },
+    resetButton: {
+        width: 77,
+        height: 50,
+        borderRadius: 4,
+        borderWidth: 2,
+        borderColor: 'green',
+        backgroundColor: '#f0cf92',
     },
     keyText: {
         textAlign: "center",
         marginTop: 'auto',
         marginBottom: 'auto',
+        fontWeight: "bold",
     },
     submit: {
         flex: 1,

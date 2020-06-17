@@ -1,13 +1,22 @@
-import React from 'react';
-import { StyleSheet, Text, View, Button, StatusBar } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, Text, View, Button, StatusBar, BackHandler } from 'react-native';
 import { useSelector } from 'react-redux';
 
 export default ({ navigation: { navigate } }) => {
 
     const name = useSelector(state => state.userReducer.user);
 
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener(
+            "hardwareBackPress",
+            toHome
+        );
+        return () => backHandler.remove();
+    }, []);
+
     const toHome = () => {
         navigate('Home');
+        return true;
     }
 
     return (
