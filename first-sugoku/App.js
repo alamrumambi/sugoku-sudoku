@@ -10,6 +10,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 export default App = () => {
 
     const Stack = createStackNavigator();
+    console.disableYellowBox = true;
 
     return (
         <NavigationContainer>
